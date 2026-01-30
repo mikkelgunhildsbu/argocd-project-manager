@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - serviceaccount.yaml
+  - role.yaml
+  - rolebinding.yaml
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Uncomment and update to override the image:
+# images:
+#   - name: ghcr.io/mikkelgunhildsbu/argocd-project-manager
+#     newTag: v1.0.0
