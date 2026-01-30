@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: argocd-destination-api
-  namespace: argocd
+  namespace: argocd-project-manager
   labels:
     app: argocd-destination-api
 spec:

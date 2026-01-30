@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argocd-destination-api
-  namespace: argocd
+  namespace: argocd-project-manager
   labels:
     app: argocd-destination-api
 spec:
@@ -20,7 +20,7 @@ spec:
         - name: api
           # Update this to your GHCR image path:
           # ghcr.io/YOUR_USERNAME/argocd-project-manager:latest
-          image: ghcr.io/mikkelgunhildsbu/argocd-project-manager:latest
+          image: ghcr.io/mikkelgunhildsbu/argocd-project-manager:main
           imagePullPolicy: Always
           ports:
             - name: http

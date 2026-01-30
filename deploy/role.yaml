@@ -2,6 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argocd-destination-api
+  # Role must be in the argocd namespace to access AppProjects there
   namespace: argocd
   labels:
     app: argocd-destination-api

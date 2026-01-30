@@ -2,6 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: argocd-destination-api
+  # RoleBinding must be in the same namespace as the Role
   namespace: argocd
   labels:
     app: argocd-destination-api
@@ -12,4 +13,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: argocd-destination-api
-    namespace: argocd
+    # ServiceAccount is in the argocd-project-manager namespace
+    namespace: argocd-project-manager
