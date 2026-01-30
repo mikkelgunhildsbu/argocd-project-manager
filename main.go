@@ -70,11 +70,9 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.APIKeyAuth(apiKey))
 
-		r.Route("/projects/{project}/destinations", func(r chi.Router) {
-			r.Get("/", destHandler.ListDestinations)
-			r.Post("/", destHandler.AddDestination)
-			r.Delete("/", destHandler.RemoveDestination)
-		})
+		r.Post("/destinations", destHandler.AddDestination)
+		r.Delete("/destinations", destHandler.RemoveDestination)
+		r.Post("/destinations/list", destHandler.ListDestinations)
 	})
 
 	log.Printf("Starting server on :%s", port)

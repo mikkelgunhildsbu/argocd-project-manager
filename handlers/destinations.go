@@ -8,7 +8,6 @@ import (
 
 	"github.com/example/argocd-destination-api/argocd"
 	"github.com/example/argocd-destination-api/audit"
-	"github.com/go-chi/chi/v5"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -22,6 +21,7 @@ type DestinationHandler struct {
 
 // DestinationRequest represents a request to add or remove a destination
 type DestinationRequest struct {
+	Project     string `json:"project"`
 	Server      string `json:"server"`
 	Namespace   string `json:"namespace"`
 	Name        string `json:"name,omitempty"`
@@ -46,17 +46,26 @@ func NewDestinationHandler(client *argocd.Client, auditLogger *audit.Logger) *De
 	}
 }
 
-// ListDestinations handles GET /projects/{project}/destinations
-func (h *DestinationHandler) ListDestinations(w http.ResponseWriter, r *http.Request) {
-	project := chi.URLParam(r, "project")
+// ListDestinationsRequest represents a request to list destinations
+type ListDestinationsRequest struct {
+	Project string `json:"project"`
+}
 
-	if !h.validateProjectName(w, project) {
+// ListDestinations handles POST /destinations/list
+func (h *DestinationHandler) ListDestinations(w http.ResponseWriter, r *http.Request) {
+	var req ListDestinationsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
 
-	destinations, _, err := h.client.GetDestinations(r.Context(), project)
+	if !h.validateProjectName(w, req.Project) {
+		return
+	}
+
+	destinations, _, err := h.client.GetDestinations(r.Context(), req.Project)
 	if err != nil {
-		h.handleK8sError(w, err, project)
+		h.handleK8sError(w, err, req.Project)
 		return
 	}
 
@@ -68,14 +77,8 @@ func (h *DestinationHandler) ListDestinations(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, DestinationsResponse{Destinations: destinations})
 }
 
-// AddDestination handles POST /projects/{project}/destinations
+// AddDestination handles POST /destinations
 func (h *DestinationHandler) AddDestination(w http.ResponseWriter, r *http.Request) {
-	project := chi.URLParam(r, "project")
-
-	if !h.validateProjectName(w, project) {
-		return
-	}
-
 	var req DestinationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid JSON body")
@@ -92,20 +95,20 @@ func (h *DestinationHandler) AddDestination(w http.ResponseWriter, r *http.Reque
 		Name:      req.Name,
 	}
 
-	err := h.client.AddDestination(r.Context(), project, dest)
+	err := h.client.AddDestination(r.Context(), req.Project, dest)
 	if err != nil {
 		if errors.IsConflict(err) {
 			writeJSONError(w, http.StatusConflict, "resource was modified, please retry")
 			return
 		}
-		h.handleK8sError(w, err, project)
+		h.handleK8sError(w, err, req.Project)
 		return
 	}
 
 	// Write audit log entry
 	if err := h.auditLogger.Log(audit.Entry{
 		Action:      "add",
-		Project:     project,
+		Project:     req.Project,
 		Server:      req.Server,
 		Namespace:   req.Namespace,
 		Name:        req.Name,
@@ -117,19 +120,13 @@ func (h *DestinationHandler) AddDestination(w http.ResponseWriter, r *http.Reque
 	}
 
 	log.Printf("Added destination to project %s: server=%s namespace=%s name=%s reason=%q",
-		project, dest.Server, dest.Namespace, dest.Name, req.Description)
+		req.Project, dest.Server, dest.Namespace, dest.Name, req.Description)
 
 	writeJSON(w, http.StatusCreated, dest)
 }
 
-// RemoveDestination handles DELETE /projects/{project}/destinations
+// RemoveDestination handles DELETE /destinations
 func (h *DestinationHandler) RemoveDestination(w http.ResponseWriter, r *http.Request) {
-	project := chi.URLParam(r, "project")
-
-	if !h.validateProjectName(w, project) {
-		return
-	}
-
 	var req DestinationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid JSON body")
@@ -146,20 +143,20 @@ func (h *DestinationHandler) RemoveDestination(w http.ResponseWriter, r *http.Re
 		Name:      req.Name,
 	}
 
-	err := h.client.RemoveDestination(r.Context(), project, dest)
+	err := h.client.RemoveDestination(r.Context(), req.Project, dest)
 	if err != nil {
 		if errors.IsConflict(err) {
 			writeJSONError(w, http.StatusConflict, "resource was modified, please retry")
 			return
 		}
-		h.handleK8sError(w, err, project)
+		h.handleK8sError(w, err, req.Project)
 		return
 	}
 
 	// Write audit log entry
 	if err := h.auditLogger.Log(audit.Entry{
 		Action:      "remove",
-		Project:     project,
+		Project:     req.Project,
 		Server:      req.Server,
 		Namespace:   req.Namespace,
 		Name:        req.Name,
@@ -171,7 +168,7 @@ func (h *DestinationHandler) RemoveDestination(w http.ResponseWriter, r *http.Re
 	}
 
 	log.Printf("Removed destination from project %s: server=%s namespace=%s name=%s reason=%q",
-		project, dest.Server, dest.Namespace, dest.Name, req.Description)
+		req.Project, dest.Server, dest.Namespace, dest.Name, req.Description)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -193,6 +190,10 @@ func (h *DestinationHandler) validateProjectName(w http.ResponseWriter, project 
 
 // validateDestinationRequest validates a destination request and writes an error if invalid
 func (h *DestinationHandler) validateDestinationRequest(w http.ResponseWriter, req DestinationRequest) bool {
+	if !h.validateProjectName(w, req.Project) {
+		return false
+	}
+
 	if req.Server == "" {
 		writeJSONError(w, http.StatusBadRequest, "server is required")
 		return false

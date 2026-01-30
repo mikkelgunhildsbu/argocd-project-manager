@@ -10,9 +10,9 @@ This API provides a simple interface to add, remove, and list destinations on Ar
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/projects/{project}/destinations` | List all destinations for an AppProject |
-| `POST` | `/projects/{project}/destinations` | Add a destination to an AppProject |
-| `DELETE` | `/projects/{project}/destinations` | Remove a destination from an AppProject |
+| `POST` | `/destinations` | Add a destination to an AppProject |
+| `DELETE` | `/destinations` | Remove a destination from an AppProject |
+| `POST` | `/destinations/list` | List all destinations for an AppProject |
 | `GET` | `/health` | Health check endpoint (no auth required) |
 
 ## Request/Response Format
@@ -22,6 +22,7 @@ This API provides a simple interface to add, remove, and list destinations on Ar
 **Request body:**
 ```json
 {
+  "project": "my-project",
   "server": "https://customer-cluster.example.com",
   "namespace": "production",
   "name": "customer-prod-cluster",
@@ -31,10 +32,20 @@ This API provides a simple interface to add, remove, and list destinations on Ar
 
 | Field | Required | Description |
 |-------|----------|-------------|
+| `project` | Yes | The ArgoCD AppProject name |
 | `server` | Yes | The Kubernetes API server URL (cannot be `*`) |
 | `namespace` | Yes | The target namespace (cannot be `*`) |
 | `name` | No | Optional friendly name for the destination |
 | `description` | Yes | Explanation of why this change is being made (for audit purposes) |
+
+### List Destinations
+
+**Request body:**
+```json
+{
+  "project": "my-project"
+}
+```
 
 ### List Destinations Response
 
@@ -259,8 +270,11 @@ kubectl run curl --rm -it --image=curlimages/curl -- \
 
 ### List destinations
 ```bash
-curl -H "X-API-Key: your-key" \
-  http://argocd-destination-api.argocd.svc/projects/my-project/destinations
+curl -X POST \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{"project": "my-project"}' \
+  http://argocd-destination-api.argocd-project-manager.svc/destinations/list
 ```
 
 ### Add a destination
@@ -269,12 +283,13 @@ curl -X POST \
   -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
   -d '{
+    "project": "my-project",
     "server": "https://customer-cluster.example.com",
     "namespace": "production",
     "name": "customer-prod",
     "description": "Adding production cluster for ACME Corp onboarding (TICKET-456)"
   }' \
-  http://argocd-destination-api.argocd.svc/projects/my-project/destinations
+  http://argocd-destination-api.argocd-project-manager.svc/destinations
 ```
 
 ### Remove a destination
@@ -283,12 +298,13 @@ curl -X DELETE \
   -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
   -d '{
+    "project": "my-project",
     "server": "https://customer-cluster.example.com",
     "namespace": "production",
     "name": "customer-prod",
     "description": "Removing cluster - customer offboarded (TICKET-789)"
   }' \
-  http://argocd-destination-api.argocd.svc/projects/my-project/destinations
+  http://argocd-destination-api.argocd-project-manager.svc/destinations
 ```
 
 ## HTTP Status Codes
