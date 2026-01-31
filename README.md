@@ -10,6 +10,7 @@ This API provides a simple interface to add, remove, and list destinations on Ar
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/projects` | List all AppProjects |
 | `POST` | `/destinations` | Add a destination to an AppProject |
 | `DELETE` | `/destinations` | Remove a destination from an AppProject |
 | `POST` | `/destinations/list` | List all destinations for an AppProject |
@@ -95,6 +96,12 @@ curl -H "X-API-Key: your-secret-key" http://localhost:8080/projects/my-project/d
 │   └── auth.go             # API key authentication and request logging
 ├── audit/
 │   └── logger.go           # Audit log writer (newline-delimited JSON)
+├── frontend/               # React web UI (Bifrost design system)
+│   ├── src/
+│   │   ├── main.jsx
+│   │   └── App.jsx
+│   ├── package.json
+│   └── vite.config.js
 └── deploy/
     ├── kustomization.yaml  # Kustomize configuration
     ├── serviceaccount.yaml # ServiceAccount for the API
@@ -346,6 +353,36 @@ The service uses Kubernetes optimistic concurrency control via `resourceVersion`
 - Seccomp profile enabled
 - API key should be rotated periodically
 - Consider adding network policies to restrict access to the service
+
+## Frontend
+
+A simple web UI built with React and [Bifrost Design System](https://bifrost.intility.com/).
+
+### Running the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs on `http://localhost:5173` and proxies API requests to `http://localhost:8080`.
+
+### Features
+
+- View all ArgoCD projects
+- Add destinations (namespace only - server is always `https://kubernetes.default.svc`)
+- Remove destinations with required reason
+- API key stored in localStorage
+
+### Building for Production
+
+```bash
+cd frontend
+npm run build
+```
+
+The built files are in `frontend/dist/`.
 
 ## Local Development
 

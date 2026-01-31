@@ -38,12 +38,33 @@ type DestinationsResponse struct {
 	Destinations []argocd.Destination `json:"destinations"`
 }
 
+// ProjectsResponse represents a list of projects
+type ProjectsResponse struct {
+	Projects []argocd.Project `json:"projects"`
+}
+
 // NewDestinationHandler creates a new destination handler
 func NewDestinationHandler(client *argocd.Client, auditLogger *audit.Logger) *DestinationHandler {
 	return &DestinationHandler{
 		client:      client,
 		auditLogger: auditLogger,
 	}
+}
+
+// ListProjects handles GET /projects
+func (h *DestinationHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
+	projects, err := h.client.ListProjects(r.Context())
+	if err != nil {
+		log.Printf("Failed to list projects: %v", err)
+		writeJSONError(w, http.StatusInternalServerError, "failed to list projects")
+		return
+	}
+
+	if projects == nil {
+		projects = []argocd.Project{}
+	}
+
+	writeJSON(w, http.StatusOK, ProjectsResponse{Projects: projects})
 }
 
 // ListDestinationsRequest represents a request to list destinations

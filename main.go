@@ -70,6 +70,7 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.APIKeyAuth(apiKey))
 
+		r.Get("/projects", destHandler.ListProjects)
 		r.Post("/destinations", destHandler.AddDestination)
 		r.Delete("/destinations", destHandler.RemoveDestination)
 		r.Post("/destinations/list", destHandler.ListDestinations)

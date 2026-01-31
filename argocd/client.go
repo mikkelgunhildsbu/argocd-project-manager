@@ -50,6 +50,37 @@ func NewClient(namespace string) (*Client, error) {
 	}, nil
 }
 
+// Project represents an ArgoCD AppProject summary
+type Project struct {
+	Name             string        `json:"name"`
+	DestinationCount int           `json:"destinationCount"`
+	Destinations     []Destination `json:"destinations"`
+}
+
+// ListProjects retrieves all AppProjects
+func (c *Client) ListProjects(ctx context.Context) ([]Project, error) {
+	list, err := c.dynamicClient.Resource(c.gvr).Namespace(c.namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var projects []Project
+	for _, item := range list.Items {
+		name := item.GetName()
+		destinations, _ := c.extractDestinations(&item)
+		if destinations == nil {
+			destinations = []Destination{}
+		}
+		projects = append(projects, Project{
+			Name:             name,
+			DestinationCount: len(destinations),
+			Destinations:     destinations,
+		})
+	}
+
+	return projects, nil
+}
+
 // GetDestinations retrieves all destinations for an AppProject
 func (c *Client) GetDestinations(ctx context.Context, projectName string) ([]Destination, string, error) {
 	project, err := c.dynamicClient.Resource(c.gvr).Namespace(c.namespace).Get(ctx, projectName, metav1.GetOptions{})
